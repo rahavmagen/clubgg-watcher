@@ -3,14 +3,14 @@
 
 const GMAIL_USER     = process.env.GMAIL_USER;
 const GMAIL_PASSWORD = process.env.GMAIL_PASSWORD;
-const API_URL        = process.env.API_URL || 'https://7max-tracker-production.up.railway.app/api/reports/upload-auto';
+const API_URL        = 'https://7max-tracker-production.up.railway.app/api/reports/upload-auto';
 const API_KEY        = process.env.API_KEY;
 
 const FROM_ADDRESS  = 'support@clubgg.com';
 const SUBJECT_MATCH = '[MAX 7] - Club Data Report';
 
-if (!GMAIL_USER || !GMAIL_PASSWORD || !API_URL || !API_KEY) {
-  console.error('Missing required env vars: GMAIL_USER, GMAIL_PASSWORD, API_URL, API_KEY');
+if (!GMAIL_USER || !GMAIL_PASSWORD || !API_KEY) {
+  console.error('Missing required env vars: GMAIL_USER, GMAIL_PASSWORD, API_KEY');
   process.exit(1);
 }
 console.log('API_URL:', API_URL);
