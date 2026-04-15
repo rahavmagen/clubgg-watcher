@@ -71,8 +71,13 @@ async function processEmail(client, uid) {
   });
 
   try {
-    const res = await axios.post(API_URL, form, {
-      headers: { 'X-Api-Key': API_KEY, ...form.getHeaders() }
+    const res = await axios.post(API_URL, form.getBuffer(), {
+      headers: {
+        'X-Api-Key': API_KEY,
+        'Content-Type': `multipart/form-data; boundary=${form.getBoundary()}`
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
     });
     console.log(`[${now()}] ✅ Upload successful! Period: ${res.data.periodEnd || 'done'}`);
   } catch (e) {
