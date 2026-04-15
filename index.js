@@ -64,7 +64,7 @@ async function processEmail(client, uid) {
 
   if (!xlsBuffer) { console.error('No ZIP attachment found'); return; }
 
-  console.log(`[${now()}] Uploading to tracker...`);
+  console.log(`[${now()}] Uploading to tracker... API_KEY="${API_KEY}" length=${API_KEY.length}`);
   const form = new FormData();
   form.append('file', xlsBuffer, {
     filename: xlsFilename,
