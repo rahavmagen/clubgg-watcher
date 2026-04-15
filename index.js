@@ -4,7 +4,7 @@
 const GMAIL_USER     = process.env.GMAIL_USER;
 const GMAIL_PASSWORD = process.env.GMAIL_PASSWORD;
 const API_URL        = 'https://7max-tracker-production.up.railway.app/api/reports/upload-auto';
-const API_KEY        = process.env.API_KEY;
+const API_KEY        = process.env.API_KEY || 'sevenmax-auto-2026-xK9p';
 
 const FROM_ADDRESS  = 'support@clubgg.com';
 const SUBJECT_MATCH = '[MAX 7] - Club Data Report';
