@@ -13,6 +13,7 @@ if (!GMAIL_USER || !GMAIL_PASSWORD || !API_URL || !API_KEY) {
   console.error('Missing required env vars: GMAIL_USER, GMAIL_PASSWORD, API_URL, API_KEY');
   process.exit(1);
 }
+console.log('API_URL:', API_URL);
 
 const { ImapFlow }     = require('imapflow');
 const { simpleParser } = require('mailparser');
