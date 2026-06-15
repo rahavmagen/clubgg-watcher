@@ -109,7 +109,17 @@ async function connect() {
     port: 993,
     secure: true,
     auth: { user: GMAIL_USER, pass: GMAIL_PASSWORD },
-    logger: false
+    logger: false,
+    maxIdleTime: 5 * 60 * 1000 // restart IDLE every 5 min so a dead connection gets noticed
+  });
+
+  let connectionLost = false;
+  client.on('error', (e) => {
+    console.error(`[${now()}] Connection error:`, e.message);
+    connectionLost = true;
+  });
+  client.on('close', () => {
+    connectionLost = true;
   });
 
   await client.connect();
@@ -122,7 +132,7 @@ async function connect() {
     await checkForTodaysEmail(client);
   });
 
-  while (true) {
+  while (!connectionLost) {
     try {
       await client.idle();
     } catch (e) {
