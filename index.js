@@ -90,7 +90,12 @@ async function processEmail(client, uid) {
   } catch (e) {
     const msg = e.response?.data?.error || e.message;
     console.error(`[${now()}] ❌ Upload failed:`, msg);
-    processedUids.delete(uid); // allow retry
+    // Only retry on transient errors (network, server down).
+    // Permanent format errors (wrong file, missing tab) — don't retry, the file won't change.
+    const isPermanent = e.response && e.response.status >= 400 && e.response.status < 500;
+    if (!isPermanent) {
+      processedUids.delete(uid); // allow retry on next idle cycle
+    }
   }
 }
 
