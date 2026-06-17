@@ -34,32 +34,38 @@ async function processEmail(client, uid) {
   let xlsBuffer = null;
   let xlsFilename = null;
 
-  for await (const msg of client.fetch([uid], { source: true })) {
-    const parsed = await simpleParser(msg.source);
-    console.log(`[${now()}] Processing: "${parsed.subject}"`);
+  try {
+    for await (const msg of client.fetch([uid], { source: true })) {
+      const parsed = await simpleParser(msg.source);
+      console.log(`[${now()}] Processing: "${parsed.subject}"`);
 
-    for (const att of parsed.attachments || []) {
-      if (att.filename && att.filename.toLowerCase().endsWith('.zip')) {
-        console.log(`[${now()}] Found ZIP: ${att.filename}`);
+      for (const att of parsed.attachments || []) {
+        if (att.filename && att.filename.toLowerCase().endsWith('.zip')) {
+          console.log(`[${now()}] Found ZIP: ${att.filename}`);
 
-        const zip = new AdmZip(att.content);
-        const xlsEntry = zip.getEntries().find(e => e.name.toLowerCase().endsWith('.xlsx'));
-        if (!xlsEntry) { console.error('No .xlsx in ZIP'); return; }
+          const zip = new AdmZip(att.content);
+          const xlsEntry = zip.getEntries().find(e => e.name.toLowerCase().endsWith('.xlsx'));
+          if (!xlsEntry) { console.error('No .xlsx in ZIP'); return; }
 
-        xlsBuffer = xlsEntry.getData();
+          xlsBuffer = xlsEntry.getData();
 
-        // Name file as yesterday's date: DD.M.YYYY.xlsx
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const d = yesterday.getDate();
-        const m = yesterday.getMonth() + 1;
-        const y = yesterday.getFullYear();
-        xlsFilename = `${d}.${m}.${y}.xlsx`;
+          // Name file as yesterday's date: DD.M.YYYY.xlsx
+          const yesterday = new Date();
+          yesterday.setDate(yesterday.getDate() - 1);
+          const d = yesterday.getDate();
+          const m = yesterday.getMonth() + 1;
+          const y = yesterday.getFullYear();
+          xlsFilename = `${d}.${m}.${y}.xlsx`;
 
-        console.log(`[${now()}] Extracted → ${xlsFilename} (${xlsBuffer.length} bytes)`);
-        break;
+          console.log(`[${now()}] Extracted → ${xlsFilename} (${xlsBuffer.length} bytes)`);
+          break;
+        }
       }
     }
+  } catch (e) {
+    console.error(`[${now()}] IMAP fetch error for uid ${uid}:`, e.message);
+    processedUids.delete(uid); // allow retry on next idle cycle
+    return;
   }
 
   if (!xlsBuffer) { console.error('No ZIP attachment found'); return; }
@@ -110,7 +116,8 @@ async function connect() {
     secure: true,
     auth: { user: GMAIL_USER, pass: GMAIL_PASSWORD },
     logger: false,
-    maxIdleTime: 5 * 60 * 1000 // restart IDLE every 5 min so a dead connection gets noticed
+    socketTimeout: 30000,        // detect dead connections within 30s
+    maxIdleTime: 5 * 60 * 1000  // re-issue IDLE every 5 min as keepalive
   });
 
   let connectionLost = false;
@@ -128,13 +135,12 @@ async function connect() {
   await client.mailboxOpen('INBOX');
   await checkForTodaysEmail(client);
 
-  client.on('exists', async () => {
-    await checkForTodaysEmail(client);
-  });
-
+  // No 'exists' event handler — fetch runs after client.idle() resolves instead,
+  // which avoids a race where the handler tries to fetch while the loop re-enters IDLE.
   while (!connectionLost) {
     try {
-      await client.idle();
+      await client.idle(); // resolves on new mail (EXISTS) or every 5 min (maxIdleTime)
+      await checkForTodaysEmail(client);
     } catch (e) {
       console.error(`[${now()}] IDLE error:`, e.message);
       break;
